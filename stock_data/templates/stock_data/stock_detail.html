@@ -1,0 +1,284 @@
+{% extends 'stock_data/base.html' %}
+
+{% block title %}{{ stock.symbol }} - Stock Detail{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-chart-bar me-2"></i>
+                {{ stock.symbol }}
+                <small class="text-muted">{{ stock.company_name }}</small>
+            </h1>
+            <div>
+                <a href="{% url 'refresh_stock_data' stock.id %}" class="btn btn-outline-success">
+                    <i class="fas fa-refresh me-2"></i>Refresh Data
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Info Card -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Stock Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Symbol:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ stock.symbol }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Token:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ stock.token }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Exchange:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ stock.exchange }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Company:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ stock.company_name }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Latest Quote Card -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>
+                    Latest Quote
+                    <button class="btn btn-sm btn-outline-primary float-end" onclick="refreshQuote()">
+                        <i class="fas fa-refresh"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="card-body" id="quote-container">
+                {% if latest_quote %}
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>LTP:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="h5">₹{{ latest_quote.ltp }}</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Change:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="{% if latest_quote.change >= 0 %}price-positive{% else %}price-negative{% endif %}">
+                                {% if latest_quote.change >= 0 %}+{% endif %}{{ latest_quote.change }}
+                                ({{ latest_quote.change_percent }}%)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>High:</strong>
+                        </div>
+                        <div class="col-6">
+                            ₹{{ latest_quote.high_price }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Low:</strong>
+                        </div>
+                        <div class="col-6">
+                            ₹{{ latest_quote.low_price }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Volume:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ latest_quote.volume|floatformat:0 }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Updated:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ latest_quote.timestamp|date:"H:i:s" }}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No live quote available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- OHLC Data Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    OHLC Data ({{ interval }} minute intervals)
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if ohlc_data %}
+                    <div class="table-responsive">
+                        <table class="table table-striped ohlc-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Open</th>
+                                    <th>High</th>
+                                    <th>Low</th>
+                                    <th>Close</th>
+                                    <th>Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in ohlc_data %}
+                                    <tr>
+                                        <td>{{ data.timestamp|date:"d-m-Y H:i" }}</td>
+                                        <td>₹{{ data.open_price }}</td>
+                                        <td>₹{{ data.high_price }}</td>
+                                        <td>₹{{ data.low_price }}</td>
+                                        <td>₹{{ data.close_price }}</td>
+                                        <td>{{ data.volume|floatformat:0 }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if ohlc_data.has_other_pages %}
+                        <nav aria-label="OHLC data pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if ohlc_data.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ ohlc_data.previous_page_number }}&interval={{ interval }}">Previous</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in ohlc_data.paginator.page_range %}
+                                    {% if ohlc_data.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}&interval={{ interval }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if ohlc_data.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ ohlc_data.next_page_number }}&interval={{ interval }}">Next</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No OHLC data available for {{ interval }} minute intervals.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function refreshQuote() {
+    const container = document.getElementById('quote-container');
+    const originalContent = container.innerHTML;
+    
+    // Show loading state
+    container.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    
+    // Make AJAX request
+    fetch('{% url "get_live_quote" stock.id %}')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the quote display
+                container.innerHTML = `
+                    <div class="row">
+                        <div class="col-6"><strong>LTP:</strong></div>
+                        <div class="col-6"><span class="h5">₹${data.ltp}</span></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Change:</strong></div>
+                        <div class="col-6">
+                            <span class="${data.change >= 0 ? 'price-positive' : 'price-negative'}">
+                                ${data.change >= 0 ? '+' : ''}${data.change}
+                                (${data.change_percent}%)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>High:</strong></div>
+                        <div class="col-6">₹${data.high}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Low:</strong></div>
+                        <div class="col-6">₹${data.low}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Volume:</strong></div>
+                        <div class="col-6">${data.volume}</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Updated:</strong></div>
+                        <div class="col-6">${new Date(data.timestamp).toLocaleTimeString()}</div>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = '<div class="alert alert-danger">Failed to fetch quote</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = originalContent;
+        });
+}
+
+// Auto-refresh quote every 5 minutes (300 seconds)
+setInterval(refreshQuote, 300000);
+</script>
+{% endblock %}

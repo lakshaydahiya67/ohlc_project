@@ -1,0 +1,5 @@
+credentials.py
+daily_token.txt
+__pycache__/
+migrations/
+stock_env/

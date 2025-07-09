@@ -1,0 +1,130 @@
+{% extends 'stock_data/base.html' %}
+
+{% block title %}Search Stocks - Stock OHLC Data{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-search me-2"></i>
+            Search Stocks
+        </h1>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-10">
+                        <input type="text" class="form-control" name="q" value="{{ query }}" 
+                               placeholder="Enter stock symbol or company name (e.g., RELIANCE, TATA, HDFC)">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search me-2"></i>Search
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div class="row">
+    <div class="col-12">
+        {% if query %}
+            <h3 class="mb-3">Search Results for "{{ query }}"</h3>
+            
+            {% if stocks %}
+                <div class="row">
+                    {% for stock in stocks %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card stock-card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ stock.symbol }}</h5>
+                                    <p class="card-text text-muted">{{ stock.company_name }}</p>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-tag me-1"></i>Token: {{ stock.token }}
+                                        </small>
+                                    </p>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-exchange-alt me-1"></i>Exchange: {{ stock.exchange }}
+                                        </small>
+                                    </p>
+                                    <div class="d-flex justify-content-between">
+                                        <a href="{% url 'stock_detail' stock.id %}" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-chart-bar me-1"></i>View Data
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No stocks found for "{{ query }}". Try searching for:
+                    <ul class="mt-2 mb-0">
+                        <li>Popular stocks: RELIANCE, TCS, HDFCBANK, ICICIBANK</li>
+                        <li>Company groups: TATA, ADANI, BAJAJ</li>
+                        <li>Sector keywords: BANK, PHARMA, IT, AUTO</li>
+                    </ul>
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Search Suggestions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Search Suggestions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Popular Stocks</h6>
+                            <ul class="list-unstyled">
+                                <li><a href="?q=RELIANCE" class="text-decoration-none">RELIANCE</a> - Reliance Industries</li>
+                                <li><a href="?q=TCS" class="text-decoration-none">TCS</a> - Tata Consultancy Services</li>
+                                <li><a href="?q=HDFCBANK" class="text-decoration-none">HDFCBANK</a> - HDFC Bank</li>
+                                <li><a href="?q=ICICIBANK" class="text-decoration-none">ICICIBANK</a> - ICICI Bank</li>
+                                <li><a href="?q=INFY" class="text-decoration-none">INFY</a> - Infosys</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Company Groups</h6>
+                            <ul class="list-unstyled">
+                                <li><a href="?q=TATA" class="text-decoration-none">TATA</a> - Tata Group Companies</li>
+                                <li><a href="?q=ADANI" class="text-decoration-none">ADANI</a> - Adani Group</li>
+                                <li><a href="?q=BAJAJ" class="text-decoration-none">BAJAJ</a> - Bajaj Group</li>
+                                <li><a href="?q=L&T" class="text-decoration-none">L&T</a> - Larsen & Toubro</li>
+                                <li><a href="?q=GODREJ" class="text-decoration-none">GODREJ</a> - Godrej Group</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Auto-focus on search input
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="q"]');
+    if (searchInput && !searchInput.value) {
+        searchInput.focus();
+    }
+});
+</script>
+{% endblock %}
