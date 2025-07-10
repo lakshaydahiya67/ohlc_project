@@ -221,6 +221,7 @@ def get_live_quote(request, stock_id):
             'change': float(live_quote.change),
             'change_percent': float(live_quote.change_percent),
             'volume': live_quote.volume,
+            'atm': float(live_quote.atm) if live_quote.atm else None,
             'timestamp': live_quote.timestamp.isoformat()
         }
     else:
@@ -261,6 +262,7 @@ def get_ohlc_data(request, stock_id):
                     'high': float(record.high_price),
                     'low': float(record.low_price),
                     'close': float(record.close_price),
+                    'atm': float(record.atm) if record.atm else None,
                     'volume': record.volume
                 }
                 for record in ohlc_records

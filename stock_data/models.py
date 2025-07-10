@@ -1,5 +1,13 @@
 from django.db import models
 from django.utils import timezone
+from decimal import Decimal
+
+def calculate_atm(price):
+    """Calculate ATM (At The Money) by rounding to nearest 50"""
+    if price is None:
+        return None
+    price_float = float(price)
+    return Decimal(str(round(price_float / 50) * 50))
 
 class Stock(models.Model):
     """Model to store stock information"""
@@ -30,6 +38,7 @@ class OHLCData(models.Model):
     high_price = models.DecimalField(max_digits=10, decimal_places=2)
     low_price = models.DecimalField(max_digits=10, decimal_places=2)
     close_price = models.DecimalField(max_digits=10, decimal_places=2)
+    atm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # ATM based on close price
     volume = models.BigIntegerField(default=0)
     interval = models.IntegerField(default=5)  # Interval in minutes
     created_at = models.DateTimeField(auto_now_add=True)
@@ -94,6 +103,7 @@ class IndexOHLCData(models.Model):
     high_price = models.DecimalField(max_digits=12, decimal_places=2)
     low_price = models.DecimalField(max_digits=12, decimal_places=2)
     close_price = models.DecimalField(max_digits=12, decimal_places=2)
+    atm = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # ATM based on close price
     interval = models.IntegerField(default=5)  # Interval in minutes
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -119,6 +129,7 @@ class IndexQuote(models.Model):
     low_price = models.DecimalField(max_digits=12, decimal_places=2)
     change = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     change_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    atm = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)  # ATM based on LTP
     timestamp = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -143,6 +154,7 @@ class LiveQuote(models.Model):
     volume = models.BigIntegerField(default=0)
     change = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     change_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    atm = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)  # ATM based on LTP
     timestamp = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

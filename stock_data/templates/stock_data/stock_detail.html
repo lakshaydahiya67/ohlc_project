@@ -122,6 +122,14 @@
                     </div>
                     <div class="row">
                         <div class="col-6">
+                            <strong>ATM:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="h6 text-info">₹{{ latest_quote.atm|default:"N/A" }}</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
                             <strong>Change:</strong>
                         </div>
                         <div class="col-6">
@@ -194,6 +202,7 @@
                                     <th>High</th>
                                     <th>Low</th>
                                     <th>Close</th>
+                                    <th>ATM</th>
                                     <th>Volume</th>
                                 </tr>
                             </thead>
@@ -205,6 +214,7 @@
                                         <td>₹{{ data.high_price }}</td>
                                         <td>₹{{ data.low_price }}</td>
                                         <td>₹{{ data.close_price }}</td>
+                                        <td class="text-info">₹{{ data.atm|default:"N/A" }}</td>
                                         <td>{{ data.volume|floatformat:0 }}</td>
                                     </tr>
                                 {% endfor %}
@@ -291,6 +301,10 @@ function refreshQuote() {
                     <div class="row">
                         <div class="col-6"><strong>LTP:</strong></div>
                         <div class="col-6"><span class="h5">₹${data.ltp}</span></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>ATM:</strong></div>
+                        <div class="col-6"><span class="h6 text-info">₹${data.atm || 'N/A'}</span></div>
                     </div>
                     <div class="row">
                         <div class="col-6"><strong>Change:</strong></div>

@@ -19,7 +19,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flattrade_client import FlattradeClient
 from credentials import USER_ID, TOKEN
-from .models import Stock, OHLCData, UserSession, LiveQuote, Index, IndexOHLCData, IndexQuote
+from .models import Stock, OHLCData, UserSession, LiveQuote, Index, IndexOHLCData, IndexQuote, calculate_atm
 
 # Singleton service instance
 _service_instance = None
@@ -216,15 +216,17 @@ class FlattradeService:
                 if stock:
                     logger.info(f"📝 Creating live quote record for stock: {stock}")
                     # Create live quote record
+                    ltp = Decimal(str(quote_data.get('lp', 0)))
                     live_quote = LiveQuote.objects.create(
                         stock=stock,
-                        ltp=Decimal(str(quote_data.get('lp', 0))),
+                        ltp=ltp,
                         open_price=Decimal(str(quote_data.get('o', 0))),
                         high_price=Decimal(str(quote_data.get('h', 0))),
                         low_price=Decimal(str(quote_data.get('l', 0))),
                         volume=int(quote_data.get('v', 0)),
                         change=Decimal(str(quote_data.get('c', 0))),
-                        change_percent=Decimal(str(quote_data.get('prctyp', 0)))
+                        change_percent=Decimal(str(quote_data.get('prctyp', 0))),
+                        atm=calculate_atm(ltp)
                     )
                     
                     logger.info(f"✅ Live quote created: {live_quote}")
@@ -298,6 +300,7 @@ class FlattradeService:
                             continue
                         
                         # Create OHLC record
+                        close_price = Decimal(str(item.get('intc', 0)))
                         ohlc_record, created = OHLCData.objects.get_or_create(
                             stock=stock,
                             timestamp=timestamp,
@@ -306,8 +309,9 @@ class FlattradeService:
                                 'open_price': Decimal(str(item.get('into', 0))),
                                 'high_price': Decimal(str(item.get('inth', 0))),
                                 'low_price': Decimal(str(item.get('intl', 0))),
-                                'close_price': Decimal(str(item.get('intc', 0))),
-                                'volume': int(item.get('v', 0))
+                                'close_price': close_price,
+                                'volume': int(item.get('v', 0)),
+                                'atm': calculate_atm(close_price)
                             }
                         )
                         
@@ -590,14 +594,16 @@ class FlattradeService:
                 
                 if index:
                     # Create index quote record (no volume)
+                    ltp = Decimal(str(quote_data.get('lp', 0)))
                     index_quote = IndexQuote.objects.create(
                         index=index,
-                        ltp=Decimal(str(quote_data.get('lp', 0))),
+                        ltp=ltp,
                         open_price=Decimal(str(quote_data.get('o', 0))),
                         high_price=Decimal(str(quote_data.get('h', 0))),
                         low_price=Decimal(str(quote_data.get('l', 0))),
                         change=Decimal(str(quote_data.get('c', 0))),
-                        change_percent=Decimal(str(quote_data.get('prctyp', 0)))
+                        change_percent=Decimal(str(quote_data.get('prctyp', 0))),
+                        atm=calculate_atm(ltp)
                     )
                     
                     # Cache for 5 minutes
@@ -685,6 +691,7 @@ class FlattradeService:
                         continue
                     
                     # Create index OHLC record (no volume)
+                    close_price = Decimal(str(item.get('intc', 0)))
                     ohlc_record, created = IndexOHLCData.objects.get_or_create(
                         index=index,
                         timestamp=timestamp,
@@ -693,7 +700,8 @@ class FlattradeService:
                             'open_price': Decimal(str(item.get('into', 0))),
                             'high_price': Decimal(str(item.get('inth', 0))),
                             'low_price': Decimal(str(item.get('intl', 0))),
-                            'close_price': Decimal(str(item.get('intc', 0)))
+                            'close_price': close_price,
+                            'atm': calculate_atm(close_price)
                         }
                     )
                     
