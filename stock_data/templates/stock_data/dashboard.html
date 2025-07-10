@@ -111,7 +111,11 @@
                                         </td>
                                         <td>{{ ohlc.timestamp|date:"H:i" }}</td>
                                         <td>₹{{ ohlc.close_price }}</td>
-                                        <td>{{ ohlc.interval }}min</td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                {{ ohlc.interval }}{% if ohlc.interval == 60 %}h{% else %}m{% endif %}
+                                            </span>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </tbody>

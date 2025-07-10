@@ -39,15 +39,24 @@ def stock_detail(request, stock_id):
     """Stock detail view showing OHLC data"""
     stock = get_object_or_404(Stock, id=stock_id)
 
+    # Get interval from request, default to 5 minutes
+    interval = request.GET.get('interval', 5)
+    
+    # Validate interval - must be one of the supported values
+    valid_intervals = [1, 3, 5, 15, 30, 60]
+    try:
+        interval = int(interval)
+        if interval not in valid_intervals:
+            interval = 5  # fallback to default
+    except (ValueError, TypeError):
+        interval = 5  # fallback to default
+
     # Always refresh data before showing the page
     flattrade_service = FlattradeService()
-    flattrade_service.get_ohlc_data(stock.symbol, 5)
+    flattrade_service.get_ohlc_data(stock.symbol, interval)
     flattrade_service.get_live_quote(stock.symbol)
 
-    # Fixed to 5-minute intervals only
-    interval = 5
-
-    # Get OHLC data for the stock
+    # Get OHLC data for the stock with selected interval
     ohlc_data = OHLCData.objects.filter(
         stock=stock,
         interval=interval
@@ -65,7 +74,8 @@ def stock_detail(request, stock_id):
         'stock': stock,
         'ohlc_data': page_obj,
         'latest_quote': latest_quote,
-        'interval': interval
+        'interval': interval,
+        'valid_intervals': valid_intervals
     }
 
     return render(request, 'stock_data/stock_detail.html', context)
@@ -131,8 +141,17 @@ def get_ohlc_data(request, stock_id):
     """AJAX endpoint to get OHLC data"""
     stock = get_object_or_404(Stock, id=stock_id)
     
-    # Fixed to 5-minute intervals only
-    interval = 5
+    # Get interval from request, default to 5 minutes
+    interval = request.GET.get('interval', 5)
+    
+    # Validate interval
+    valid_intervals = [1, 3, 5, 15, 30, 60]
+    try:
+        interval = int(interval)
+        if interval not in valid_intervals:
+            interval = 5  # fallback to default
+    except (ValueError, TypeError):
+        interval = 5  # fallback to default
     
     flattrade_service = FlattradeService()
     ohlc_records = flattrade_service.get_ohlc_data(stock.symbol, interval)
@@ -140,6 +159,7 @@ def get_ohlc_data(request, stock_id):
     if ohlc_records:
         data = {
             'success': True,
+            'interval': interval,
             'data': [
                 {
                     'timestamp': record.timestamp.isoformat(),
@@ -165,17 +185,34 @@ def refresh_stock_data(request, stock_id):
     """Refresh stock data (OHLC and live quote)"""
     stock = get_object_or_404(Stock, id=stock_id)
     
+    # Get interval from request, default to 5 minutes
+    interval = request.GET.get('interval', 5)
+    
+    # Validate interval
+    valid_intervals = [1, 3, 5, 15, 30, 60]
+    try:
+        interval = int(interval)
+        if interval not in valid_intervals:
+            interval = 5  # fallback to default
+    except (ValueError, TypeError):
+        interval = 5  # fallback to default
+    
     flattrade_service = FlattradeService()
     
-    # Refresh OHLC data with 5-minute intervals
-    ohlc_records = flattrade_service.get_ohlc_data(stock.symbol, 5)
+    # Refresh OHLC data with selected interval
+    ohlc_records = flattrade_service.get_ohlc_data(stock.symbol, interval)
     
     # Refresh live quote
     live_quote = flattrade_service.get_live_quote(stock.symbol)
     
     if ohlc_records or live_quote:
-        messages.success(request, f'Data refreshed for {stock.symbol}')
+        messages.success(request, f'Data refreshed for {stock.symbol} ({interval} min intervals)')
     else:
         messages.error(request, f'Failed to refresh data for {stock.symbol}')
     
-    return redirect('stock_detail', stock_id=stock_id)
+    # Redirect back with interval parameter preserved
+    redirect_url = f'/stock/{stock_id}/'
+    if interval != 5:  # Only add parameter if not default
+        redirect_url += f'?interval={interval}'
+    
+    return redirect(redirect_url)
