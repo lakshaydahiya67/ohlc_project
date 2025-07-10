@@ -1,4 +1,5 @@
 {% extends 'stock_data/base.html' %}
+{% load stock_extras %}
 
 {% block title %}Search Stocks - Stock OHLC Data{% endblock %}
 
@@ -46,7 +47,12 @@
                             <div class="card stock-card h-100">
                                 <div class="card-body">
                                     <h5 class="card-title">{{ stock.symbol }}</h5>
-                                    <p class="card-text text-muted">{{ stock.company_name }}</p>
+                                    <p class="card-text text-muted">{% get_display_name stock %}</p>
+                                    <p class="card-text">
+                                        <small class="{% get_type_color stock %}">
+                                            <i class="{% get_type_icon stock %} me-1"></i>{% get_type_badge stock %}
+                                        </small>
+                                    </p>
                                     <p class="card-text">
                                         <small class="text-muted">
                                             <i class="fas fa-tag me-1"></i>Token: {{ stock.token }}
@@ -58,7 +64,7 @@
                                         </small>
                                     </p>
                                     <div class="d-flex justify-content-between">
-                                        <a href="{% url 'stock_detail' stock.id %}" class="btn btn-primary btn-sm">
+                                        <a href="{% get_detail_url stock %}" class="btn btn-primary btn-sm">
                                             <i class="fas fa-chart-bar me-1"></i>View Data
                                         </a>
                                     </div>

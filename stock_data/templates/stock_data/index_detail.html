@@ -1,0 +1,301 @@
+{% extends 'stock_data/base.html' %}
+
+{% block title %}{{ index.symbol }} - Index Detail{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-chart-line me-2"></i>
+                {{ index.name }}
+                <small class="text-muted">{{ index.symbol }}</small>
+            </h1>
+            <div>
+                <a href="{% url 'index_detail' index.id %}?interval={{ interval }}&refresh=1" class="btn btn-outline-success">
+                    <i class="fas fa-refresh me-2"></i>Refresh Data
+                </a>
+            </div>
+        </div>
+
+        <!-- Time Frame Selector -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-clock me-2"></i>
+                            Time Frame Selection
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="btn-group" role="group" aria-label="Time frame selection" data-current-interval="{{ interval }}">
+                            {% for valid_interval in valid_intervals %}
+                                <input type="radio" class="btn-check" name="interval" id="interval{{ valid_interval }}" 
+                                       value="{{ valid_interval }}" {% if interval == valid_interval %}checked{% endif %} 
+                                       onchange="changeInterval(this.value)">
+                                <label class="btn btn-outline-primary" for="interval{{ valid_interval }}" 
+                                       title="{% if valid_interval == 60 %}1 hour{% else %}{{ valid_interval }} minute{% endif %} intervals">
+                                    {{ valid_interval }}m
+                                </label>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted ms-3">
+                            Currently showing {% if interval == 60 %}1-hour{% else %}{{ interval }}-minute{% endif %} intervals
+                            <span class="text-muted"> | Use keyboard shortcuts: 1, 3, 5, 6 (15m), 0 (30m), h (1h)</span>
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Index Info Card -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Index Information
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Symbol:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ index.symbol }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Token:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ index.token }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Exchange:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ index.exchange }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Company:</strong>
+                    </div>
+                    <div class="col-6">
+                        {{ index.name }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Latest Quote Card -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bolt me-2"></i>
+                    Latest Quote
+                    <button class="btn btn-sm btn-outline-primary float-end" onclick="refreshQuote()" title="Refresh live quote">
+                        <i class="fas fa-refresh"></i>
+                    </button>
+                </h5>
+            </div>
+            <div class="card-body" id="quote-container">
+                {% if latest_quote %}
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>LTP:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="h5">₹{{ latest_quote.ltp }}</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Change:</strong>
+                        </div>
+                        <div class="col-6">
+                            <span class="{% if latest_quote.change >= 0 %}price-positive{% else %}price-negative{% endif %}">
+                                {% if latest_quote.change >= 0 %}+{% endif %}{{ latest_quote.change }}
+                                ({{ latest_quote.change_percent }}%)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>High:</strong>
+                        </div>
+                        <div class="col-6">
+                            ₹{{ latest_quote.high_price }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Low:</strong>
+                        </div>
+                        <div class="col-6">
+                            ₹{{ latest_quote.low_price }}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Volume:</strong>
+                        </div>
+                        <div class="col-6">
+                            N/A (Index)
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <strong>Updated:</strong>
+                        </div>
+                        <div class="col-6">
+                            {{ latest_quote.timestamp|date:"H:i:s" }}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No live quote available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- OHLC Data Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-table me-2"></i>
+                    OHLC Data ({{ interval }}-minute intervals)
+                    <span class="badge bg-primary ms-2">{{ ohlc_data.paginator.count }} records</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if ohlc_data %}
+                    <div class="table-responsive">
+                        <table class="table table-striped ohlc-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Open</th>
+                                    <th>High</th>
+                                    <th>Low</th>
+                                    <th>Close</th>
+                                    <th>Volume</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in ohlc_data %}
+                                    <tr>
+                                        <td>{{ data.timestamp|date:"d-m-Y H:i" }}</td>
+                                        <td>₹{{ data.open_price }}</td>
+                                        <td>₹{{ data.high_price }}</td>
+                                        <td>₹{{ data.low_price }}</td>
+                                        <td>₹{{ data.close_price }}</td>
+                                        <td>N/A</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    {% if ohlc_data.has_other_pages %}
+                        <nav aria-label="OHLC data pagination">
+                            <ul class="pagination justify-content-center">
+                                {% if ohlc_data.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ ohlc_data.previous_page_number }}&interval={{ interval }}">Previous</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in ohlc_data.paginator.page_range %}
+                                    {% if ohlc_data.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}&interval={{ interval }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if ohlc_data.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ ohlc_data.next_page_number }}&interval={{ interval }}">Next</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No OHLC data available for {{ interval }}-minute intervals. Try refreshing the data or selecting a different time frame.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Get current interval from the page
+let currentInterval = Number(document.querySelector('[data-current-interval]').dataset.currentInterval);
+
+function changeInterval(newInterval) {
+    if (newInterval !== currentInterval) {
+        // Update URL and reload page with new interval
+        const url = new URL(window.location);
+        if (newInterval === 5) {
+            // Remove interval parameter for default value
+            url.searchParams.delete('interval');
+        } else {
+            url.searchParams.set('interval', newInterval);
+        }
+        window.location.href = url.toString();
+    }
+}
+
+function refreshQuote() {
+    // For indices, we'll just reload the page for now
+    // Can be enhanced with AJAX later if needed
+    window.location.reload();
+}
+
+// Add keyboard shortcuts for interval switching
+document.addEventListener('keydown', function(event) {
+    // Only trigger if not in an input field
+    if (event.target.tagName !== 'INPUT' && event.target.tagName !== 'TEXTAREA') {
+        const intervalMap = {
+            '1': 1,
+            '3': 3,
+            '5': 5,
+            '6': 15,  // 6 for 15 minutes (1 + 5)
+            '0': 30,  // 0 for 30 minutes (3 + 0)
+            'h': 60   // h for hour (60 minutes)
+        };
+        
+        if (intervalMap[event.key]) {
+            changeInterval(intervalMap[event.key]);
+        }
+    }
+});
+</script>
+{% endblock %}

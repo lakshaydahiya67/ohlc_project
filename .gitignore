@@ -3,3 +3,5 @@ daily_token.txt
 __pycache__/
 migrations/
 venv/
+CLAUDE.md
+db.sqlite3

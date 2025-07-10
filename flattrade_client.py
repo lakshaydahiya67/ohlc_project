@@ -96,12 +96,13 @@ class FlattradeClient:
             print(f"❌ Error fetching OHLC data: {e}")
             return None
     
-    def get_live_quotes(self, symbol='RELIANCE-EQ'):
+    def get_live_quotes(self, symbol='RELIANCE-EQ', exchange='NSE'):
         """
         Get live quotes for a stock
         
         Args:
             symbol (str): Trading symbol (default: RELIANCE-EQ)
+            exchange (str): Exchange (default: NSE)
             
         Returns:
             dict: Live quotes data
@@ -117,14 +118,14 @@ class FlattradeClient:
                 token = symbol
             else:
                 # Search for the token using the symbol
-                search_result = self.api.searchscrip(exchange='NSE', searchtext=symbol.replace('-EQ', ''))
+                search_result = self.api.searchscrip(exchange=exchange, searchtext=symbol.replace('-EQ', ''))
                 if search_result and search_result.get('values'):
                     token = search_result['values'][0]['token']
                 else:
                     print(f"❌ Could not find token for symbol: {symbol}")
                     return None
             
-            quotes = self.api.get_quotes(exchange='NSE', token=token)
+            quotes = self.api.get_quotes(exchange=exchange, token=token)
             
             if quotes and quotes.get('stat') == 'Ok':
                 print(f"✅ Live quotes for {symbol}:")
@@ -276,7 +277,7 @@ class FlattradeClient:
             print(f"📊 Fetching Reliance OHLC data from {lastBusDay}")
             
             ret = self.api.get_time_price_series(
-                exchange='NSE',
+                exchange='NSE',  # Reliance is on NSE
                 token='2885',  # Reliance token
                 starttime=lastBusDay.timestamp(),
                 interval=5  # 5-minute intervals

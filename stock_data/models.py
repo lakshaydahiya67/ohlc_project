@@ -17,6 +17,10 @@ class Stock(models.Model):
         verbose_name = "Stock"
         verbose_name_plural = "Stocks"
         ordering = ['symbol']
+        indexes = [
+            models.Index(fields=['symbol']),
+            models.Index(fields=['company_name']),
+        ]
 
 class OHLCData(models.Model):
     """Model to store OHLC (Open, High, Low, Close) data"""
@@ -38,6 +42,10 @@ class OHLCData(models.Model):
         verbose_name_plural = "OHLC Data"
         ordering = ['-timestamp']
         unique_together = ['stock', 'timestamp', 'interval']
+        indexes = [
+            models.Index(fields=['stock', 'interval', '-timestamp']),
+            models.Index(fields=['timestamp']),
+        ]
 
 class UserSession(models.Model):
     """Model to store API session information"""
@@ -59,6 +67,72 @@ class UserSession(models.Model):
         verbose_name_plural = "User Sessions"
         ordering = ['-created_at']
 
+class Index(models.Model):
+    """Model to store index information (Nifty, Bank Nifty, etc.)"""
+    symbol = models.CharField(max_length=50)
+    token = models.CharField(max_length=20, unique=True)
+    name = models.CharField(max_length=200)
+    exchange = models.CharField(max_length=10, default='NSE')
+    index_type = models.CharField(max_length=50, default='EQUITY')  # EQUITY, SECTORAL, THEMATIC
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.name} ({self.symbol})"
+    
+    class Meta:
+        verbose_name = "Index"
+        verbose_name_plural = "Indices"
+        ordering = ['name']
+
+class IndexOHLCData(models.Model):
+    """Model to store OHLC data for indices"""
+    index = models.ForeignKey(Index, on_delete=models.CASCADE, related_name='ohlc_data')
+    timestamp = models.DateTimeField()
+    open_price = models.DecimalField(max_digits=12, decimal_places=2)
+    high_price = models.DecimalField(max_digits=12, decimal_places=2)
+    low_price = models.DecimalField(max_digits=12, decimal_places=2)
+    close_price = models.DecimalField(max_digits=12, decimal_places=2)
+    interval = models.IntegerField(default=5)  # Interval in minutes
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.index.symbol} - {self.timestamp} ({self.interval}min)"
+    
+    class Meta:
+        verbose_name = "Index OHLC Data"
+        verbose_name_plural = "Index OHLC Data"
+        ordering = ['-timestamp']
+        unique_together = ['index', 'timestamp', 'interval']
+        indexes = [
+            models.Index(fields=['index', 'interval', '-timestamp']),
+            models.Index(fields=['timestamp']),
+        ]
+
+class IndexQuote(models.Model):
+    """Model to store live index quotes (no volume data)"""
+    index = models.ForeignKey(Index, on_delete=models.CASCADE, related_name='quotes')
+    ltp = models.DecimalField(max_digits=12, decimal_places=2)  # Last Traded Price
+    open_price = models.DecimalField(max_digits=12, decimal_places=2)
+    high_price = models.DecimalField(max_digits=12, decimal_places=2)
+    low_price = models.DecimalField(max_digits=12, decimal_places=2)
+    change = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    change_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.index.symbol} - {self.ltp}"
+    
+    class Meta:
+        verbose_name = "Index Quote"
+        verbose_name_plural = "Index Quotes"
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['index', '-timestamp']),
+            models.Index(fields=['timestamp']),
+        ]
+
 class LiveQuote(models.Model):
     """Model to store live stock quotes"""
     stock = models.ForeignKey(Stock, on_delete=models.CASCADE, related_name='live_quotes')
@@ -78,3 +152,7 @@ class LiveQuote(models.Model):
         verbose_name = "Live Quote"
         verbose_name_plural = "Live Quotes"
         ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['stock', '-timestamp']),
+            models.Index(fields=['timestamp']),
+        ]
