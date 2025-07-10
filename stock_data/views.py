@@ -38,31 +38,36 @@ def dashboard(request):
 def stock_detail(request, stock_id):
     """Stock detail view showing OHLC data"""
     stock = get_object_or_404(Stock, id=stock_id)
-    
+
+    # Always refresh data before showing the page
+    flattrade_service = FlattradeService()
+    flattrade_service.get_ohlc_data(stock.symbol, 5)
+    flattrade_service.get_live_quote(stock.symbol)
+
     # Fixed to 5-minute intervals only
     interval = 5
-    
+
     # Get OHLC data for the stock
     ohlc_data = OHLCData.objects.filter(
         stock=stock,
         interval=interval
     ).order_by('-timestamp')
-    
+
     # Pagination
     paginator = Paginator(ohlc_data, 50)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
+
     # Get latest live quote
     latest_quote = LiveQuote.objects.filter(stock=stock).order_by('-timestamp').first()
-    
+
     context = {
         'stock': stock,
         'ohlc_data': page_obj,
         'latest_quote': latest_quote,
         'interval': interval
     }
-    
+
     return render(request, 'stock_data/stock_detail.html', context)
 
 def search_stocks(request):
